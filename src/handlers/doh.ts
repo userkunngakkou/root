@@ -1,5 +1,6 @@
 import * as dnsPacket from 'dns-packet';
-import { Buffer } from 'node:buffer';
+import { Buffer } from 'buffer'; // ← "node:buffer" ではなく "buffer" を使用
+
 import { Env, UPSTREAM_RESOLVERS } from '../types';
 
 export async function handleDoH(request: Request, env: Env, corsHeaders: any, provider: string = 'google'): Promise<Response> {
@@ -7,6 +8,7 @@ export async function handleDoH(request: Request, env: Env, corsHeaders: any, pr
 
   try {
     const buf = await request.arrayBuffer();
+    // npmのBufferを使って変換
     const query = dnsPacket.decode(Buffer.from(buf));
     const question = query.questions?.[0];
 
@@ -14,7 +16,7 @@ export async function handleDoH(request: Request, env: Env, corsHeaders: any, pr
 
     const parts = question.name.toLowerCase().split('.');
     const tld = parts[parts.length - 1];
-    
+
     const tldRecord = await env.DB.prepare("SELECT 1 FROM tlds WHERE name=?").bind(tld).first();
     const isSystemTld = env.CUSTOM_TLDS.split(',').includes(tld);
 
@@ -76,7 +78,6 @@ export async function handleDoH(request: Request, env: Env, corsHeaders: any, pr
     });
 
   } catch (e) {
-    console.error("DoH Error:", e);
     return new Response("Server Error", { status: 500, headers: corsHeaders });
   }
 }
