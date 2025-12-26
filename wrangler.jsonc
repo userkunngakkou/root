@@ -6,12 +6,18 @@
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
     {
-      "binding": "DB",  // ← ここが重要！コード内の env.DB と一致させる
+      "binding": "DB",
       "database_name": "root",
       "database_id": "058779fb-989a-4b0e-a26d-b21d3bf1c238"
     }
   ],
   "vars": {
-    "CUSTOM_TLDS": "boss,dev,web,app,inc,tech,xyz,site"
+    // 【初期公認TLDリスト】
+    // Web3/Tech: web3, dao, chain, node, defi, ai, meta
+    // Business:  boss, corp, inc, hq, ltd, pro
+    // Creative:  art, design, studio, media, create
+    // Lifestyle: game, play, moe, cool, free
+    // Japan:     tokyo, samurai, ninja, otaku
+    "CUSTOM_TLDS": "web3,dao,chain,node,defi,ai,meta,boss,corp,inc,hq,ltd,pro,art,design,studio,media,create,game,play,moe,cool,free,tokyo,samurai,ninja,otaku"
   }
 }

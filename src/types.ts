@@ -15,4 +15,5 @@ export interface DnsRecord {
 export const UPSTREAM_RESOLVERS: Record<string, string> = {
   google: "https://8.8.8.8/dns-query",
   cf: "https://1.1.1.1/dns-query",
+  quad9: "https://9.9.9.9/dns-query",
 };
