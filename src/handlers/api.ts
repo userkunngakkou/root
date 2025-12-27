@@ -1,47 +1,10 @@
 import { Env } from '../types';
 import { jsonResponse, errorResponse } from '../utils';
 
-// =================================================================================
-// 🚫 RESERVED ICANN / IANA TLDs LIST (Comprehensive Protection)
-// =================================================================================
-// ユーザーが既存のルートドメイン（.com, .jp等）を勝手に登録できないようにするための保護リスト。
-// 一般的なgTLD, ccTLD, New gTLD, インフラ用予約語を網羅しています。
-const RESERVED_ICANN_TLDS = new Set([
-  // --- Original gTLDs ---
-  'com', 'net', 'org', 'edu', 'gov', 'mil', 'int', 'arpa',
-  
-  // --- Country Code TLDs (ccTLDs - All Major & Minor) ---
-  'ac', 'ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'ao', 'aq', 'ar', 'as', 'at', 'au', 'aw', 'ax', 'az',
-  'ba', 'bb', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bm', 'bn', 'bo', 'br', 'bs', 'bt', 'bw', 'by', 'bz',
-  'ca', 'cc', 'cd', 'cf', 'cg', 'ch', 'ci', 'ck', 'cl', 'cm', 'cn', 'co', 'cr', 'cu', 'cv', 'cw', 'cx', 'cy', 'cz',
-  'de', 'dj', 'dk', 'dm', 'do', 'dz', 'ec', 'ee', 'eg', 'er', 'es', 'et', 'eu', 'fi', 'fj', 'fk', 'fm', 'fo', 'fr',
-  'ga', 'gd', 'ge', 'gf', 'gg', 'gh', 'gi', 'gl', 'gm', 'gn', 'gp', 'gq', 'gr', 'gs', 'gt', 'gu', 'gw', 'gy',
-  'hk', 'hm', 'hn', 'hr', 'ht', 'hu', 'id', 'ie', 'il', 'im', 'in', 'io', 'iq', 'ir', 'is', 'it',
-  'je', 'jm', 'jo', 'jp', 'ke', 'kg', 'kh', 'ki', 'km', 'kn', 'kp', 'kr', 'kw', 'ky', 'kz',
-  'la', 'lb', 'lc', 'li', 'lk', 'lr', 'ls', 'lt', 'lu', 'lv', 'ly', 'ma', 'mc', 'md', 'me', 'mg', 'mh', 'mk', 'ml', 'mm', 'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'my', 'mz',
-  'na', 'nc', 'ne', 'nf', 'ng', 'ni', 'nl', 'no', 'np', 'nr', 'nu', 'nz', 'om', 'pa', 'pe', 'pf', 'pg', 'ph', 'pk', 'pl', 'pm', 'pn', 'pr', 'ps', 'pt', 'pw', 'py', 'qa', 're', 'ro', 'rs', 'ru', 'rw',
-  'sa', 'sb', 'sc', 'sd', 'se', 'sg', 'sh', 'si', 'sk', 'sl', 'sm', 'sn', 'so', 'sr', 'ss', 'st', 'su', 'sv', 'sx', 'sy', 'sz',
-  'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tr', 'tt', 'tv', 'tw', 'tz', 'ua', 'ug', 'uk', 'us', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn', 'vu', 'wf', 'ws', 'ye', 'yt', 'za', 'zm', 'zw',
-
-  // --- Popular New gTLDs (Technology & Business) ---
-  'xyz', 'online', 'site', 'top', 'tech', 'shop', 'store', 'club', 'vip', 'app', 'dev', 'pro', 'mobi', 'name', 'aero', 'asia', 'cat', 'jobs', 'tel', 'travel',
-  'cloud', 'digital', 'email', 'network', 'systems', 'company', 'guide', 'events', 'academy', 'computer', 'software', 'social', 'marketing', 'ninja', 'wiki',
-  'zone', 'press', 'agency', 'center', 'services', 'exchange', 'studio', 'design', 'blog', 'link', 'click', 'help', 'support', 'space', 'earth', 'live', 'news', 'website',
-  'business', 'finance', 'money', 'cash', 'fund', 'capital', 'market', 'trade', 'bank', 'law', 'legal', 'consulting', 'management', 'invest', 'properties', 'realestate',
-  'solutions', 'guru', 'today', 'london', 'tokyo', 'nyc', 'paris', 'berlin', 'africa', 'capetown', 'durban', 'joburg',
-
-  // --- Lifestyle & Media ---
-  'art', 'music', 'movie', 'film', 'photo', 'photography', 'pics', 'images', 'style', 'fashion', 'beauty', 'hair', 'makeup', 'salon', 'spa',
-  'health', 'fitness', 'gym', 'yoga', 'food', 'drink', 'cafe', 'bar', 'restaurant', 'pizza', 'burger', 'sushi', 'beer', 'wine', 'vodka',
-  'cars', 'auto', 'motor', 'bike', 'ride', 'taxi', 'limo', 'bus', 'train', 'plane', 'fly', 'travel', 'vacation', 'holiday', 'trip', 'tour',
-  'hotel', 'hostel', 'motel', 'villas', 'rentals', 'cruises', 'flights', 'tickets', 'booking', 'deal', 'sale', 'free', 'discount', 'gift', 'promo', 'coupon',
-  'game', 'play', 'video', 'audio', 'stream', 'chat', 'team', 'group', 'fun', 'cool', 'run', 'win', 'bet', 'poker', 'casino',
-
-  // --- Technical / Infrastructure / Special Use ---
-  'example', 'test', 'localhost', 'invalid', 'local', 'onion', 'internal', 'lan', 'home', 'corp', 'root',
-  'mail', 'web', 'www', 'ftp', 'http', 'https', 'ssl', 'tls', 'ns', 'dns', 'whois', 'nic', 'registry', 'registrar', 'iana', 'icann', 'ietf', 'rfc',
-  'ipv4', 'ipv6', 'router', 'server', 'gateway', 'host', 'admin', 'administrator', 'support', 'info', 'contact', 'abuse', 'security'
-]);
+// ★ ローカルのJSONファイルからICANNリストを読み込み (高速化 & コード短縮)
+// ※ src/handlers/tlds.json が存在することを前提としています
+import icannTlds from './tlds.json';
+const RESERVED_ICANN_TLDS = new Set(icannTlds);
 
 export async function handleApi(url: URL, request: Request, env: Env, corsHeaders: any): Promise<Response> {
   const path = url.pathname;
@@ -54,6 +17,7 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
     /**
      * [GET] /api/tlds
      * 登録されている全てのTLDと、システム予約TLD（wrangler.jsoncで指定）をマージして返します。
+     * フロントエンドのマーケットプレイスや検索でのサジェストに使用されます。
      */
     if (path === "/api/tlds") {
       const { results } = await env.DB.prepare(
@@ -64,9 +28,9 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
       const dbTlds = results || [];
       const allTlds = [...dbTlds];
 
+      // システムTLD (環境変数定義) がDBにない場合、表示用リストに追加
       envTlds.forEach(t => {
         const trimmedTld = t.trim();
-        // DBに同名のTLDがない場合のみ、システムTLDとしてリストに追加
         if (trimmedTld && !dbTlds.find((dt: any) => dt.name === trimmedTld)) {
           allTlds.push({
             name: trimmedTld,
@@ -83,8 +47,9 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
     /**
      * [POST] /api/tld/register
      * 新しいRoot TLDを登録します。
-     * - ICANN予約語チェック
-     * - アカウントごとの保有上限チェック (デフォルト10個)
+     * - フォーマットチェック
+     * - ICANN予約語チェック (tlds.json参照)
+     * - ユーザーごとのTLD所有上限チェック
      */
     if (path === "/api/tld/register" && request.method === "POST") {
       const body = await request.json() as any;
@@ -108,8 +73,6 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
 
       // ユーザー情報の取得 (上限チェック用)
       const user = await env.DB.prepare("SELECT tld_limit FROM users WHERE id = ?").bind(owner_id).first() as { tld_limit: number } | null;
-      
-      // ユーザーが存在しない場合
       if (!user) {
         return errorResponse("User not found. Please login again.", 401, corsHeaders);
       }
@@ -142,7 +105,7 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
 
     /**
      * [POST] /api/tld/update
-     * TLDの設定（公開/非公開、価格など）を更新します。
+     * TLDの設定（公開/非公開、価格、Config）を更新します。
      */
     if (path === "/api/tld/update" && request.method === "POST") {
       const body = await request.json() as any;
@@ -167,6 +130,27 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
       ).run();
 
       return jsonResponse({ success: true, message: "TLD settings updated." }, 200, corsHeaders);
+    }
+
+    /**
+     * [DELETE] /api/tld/delete
+     * TLDを削除します。関連するドメインとレコードもカスケード削除されます。
+     */
+    if (path === "/api/tld/delete" && request.method === "DELETE") {
+      const body = await request.json() as any;
+      const { name, owner_id } = body;
+
+      const tld = await env.DB.prepare("SELECT owner_id FROM tlds WHERE name=?").bind(name).first() as { owner_id: string } | null;
+      if (!tld || tld.owner_id !== owner_id) return errorResponse("Unauthorized or Not Found.", 403, corsHeaders);
+
+      // 削除バッチ処理 (Record -> Domain -> TLD)
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM records WHERE domain_id IN (SELECT id FROM domains WHERE tld=?)").bind(name),
+        env.DB.prepare("DELETE FROM domains WHERE tld=?").bind(name),
+        env.DB.prepare("DELETE FROM tlds WHERE name=?").bind(name)
+      ]);
+
+      return jsonResponse({ success: true, message: `TLD .${name} deleted.` }, 200, corsHeaders);
     }
 
     // =================================================================================
@@ -212,7 +196,7 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
 
     /**
      * [POST] /api/domain/register
-     * ドメインを実際に登録します。初期DNSレコードも作成します。
+     * ドメインを実際に登録します。初期DNSレコード(Aレコード)も作成します。
      */
     if (path === "/api/domain/register" && request.method === "POST") {
       const body = await request.json() as any;
@@ -244,24 +228,39 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
     }
 
     /**
+     * [DELETE] /api/domain/delete
+     * ドメインを削除します。紐づくレコードも削除されます。
+     */
+    if (path === "/api/domain/delete" && request.method === "DELETE") {
+      const body = await request.json() as any;
+      const { name, tld, owner_id } = body;
+      
+      const domain = await env.DB.prepare("SELECT id, owner_id FROM domains WHERE name=? AND tld=?").bind(name, tld).first() as { id: number, owner_id: string } | null;
+      if (!domain || domain.owner_id !== owner_id) return errorResponse("Unauthorized or Not Found.", 403, corsHeaders);
+
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM records WHERE domain_id=?").bind(domain.id),
+        env.DB.prepare("DELETE FROM domains WHERE id=?").bind(domain.id)
+      ]);
+
+      return jsonResponse({ success: true, message: "Domain deleted." }, 200, corsHeaders);
+    }
+
+    /**
      * [GET] /api/dashboard
      * ユーザーが所有するTLDとドメインの一覧を一括取得します。
-     * フロントエンドのダッシュボード表示に必要な全てのデータを返します。
      */
     if (path === "/api/dashboard") {
       const ownerId = url.searchParams.get("owner_id");
       if (!ownerId) return errorResponse("Missing owner_id parameter.", 400, corsHeaders);
 
-      // ユーザー情報の取得
       const user = await env.DB.prepare("SELECT username, tld_limit, created_at FROM users WHERE id=?").bind(ownerId).first();
       if (!user) return errorResponse("User not found.", 404, corsHeaders);
 
-      // 所有TLD一覧
       const myTlds = await env.DB.prepare(
         "SELECT name, is_public, price, created_at FROM tlds WHERE owner_id=? ORDER BY created_at DESC"
       ).bind(ownerId).all();
 
-      // 所有ドメイン一覧
       const myDomains = await env.DB.prepare(
         "SELECT id, tld, name, created_at FROM domains WHERE owner_id=? ORDER BY created_at DESC"
       ).bind(ownerId).all();
@@ -295,7 +294,7 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
     /**
      * [POST] /api/records/update
      * レコードの一括更新 (全削除 -> 再挿入 のトランザクション的処理)
-     * 55種類のレコードタイプに対応するため、複雑なオブジェクトはJSON化して保存します。
+     * 複雑なオブジェクト(SRV, HTTPSなど)はJSON文字列化して保存します。
      */
     if (path === "/api/records/update" && request.method === "POST") {
       const body = await request.json() as any;
@@ -303,17 +302,13 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
 
       if (!domain_id || !owner_id) return errorResponse("Missing required fields.", 400, corsHeaders);
 
-      // ドメイン所有権の確認
       const domain = await env.DB.prepare("SELECT owner_id FROM domains WHERE id=?").bind(domain_id).first() as { owner_id: string } | null;
-      
       if (!domain || domain.owner_id !== owner_id) {
         return errorResponse("Unauthorized: You do not own this domain.", 403, corsHeaders);
       }
 
-      // バッチ処理の準備
       const batch = [];
-
-      // 1. 既存レコードを全て削除 (クリーンな状態にする)
+      // 1. 既存レコードを全て削除
       batch.push(env.DB.prepare("DELETE FROM records WHERE domain_id=?").bind(domain_id));
 
       // 2. 新しいレコードを挿入
@@ -321,16 +316,13 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
         for (const r of records) {
           let valToStore = r.value;
 
-          // 複雑なレコードタイプ(オブジェクト)の場合はJSON文字列に変換して保存
-          // 対応: MX, SRV, HTTPS, SVCB, SOA, NAPTR, TLSA, SSHFP etc...
+          // オブジェクトデータはJSON文字列に変換
           if (typeof r.value === 'object' && r.value !== null) {
             valToStore = JSON.stringify(r.value);
           } else {
-            // 文字列なら文字列として確実に保存
             valToStore = String(r.value);
           }
 
-          // 空の値は保存しない (ゴミデータ防止)
           if (valToStore && valToStore.trim() !== "") {
             batch.push(
               env.DB.prepare(
@@ -348,18 +340,14 @@ export async function handleApi(url: URL, request: Request, env: Env, corsHeader
         }
       }
 
-      // 一括実行 (Batch execution for atomicity)
       await env.DB.batch(batch);
-
-      return jsonResponse({ success: true, message: "DNS records updated successfully." }, 200, corsHeaders);
+      return jsonResponse({ success: true, message: "DNS records updated." }, 200, corsHeaders);
     }
 
   } catch (e: any) {
-    // サーバー内部エラーの包括的ハンドリング
     console.error("API Error:", e);
     return errorResponse(e.message || "Internal Server Error", 500, corsHeaders);
   }
 
-  // エンドポイントが見つからない場合
   return errorResponse("API Endpoint Not Found", 404, corsHeaders);
 }
